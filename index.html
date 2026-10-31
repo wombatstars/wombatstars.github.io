@@ -313,6 +313,8 @@ function loadRates(){
  });
 }
 loadRates();setInterval(loadRates,60000);
+// Обновляем котировку бота раз в минуту, чтобы открытая вкладка не «застывала».
+setInterval(function(){fetchQuote(stars)},60000);
 setTimeout(function(){to(250)},500);
 window.addEventListener('resize',kick);
 
