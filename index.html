@@ -184,14 +184,17 @@ footer{background:var(--blue);color:#fff;margin-top:clamp(88px,12vw,170px);paddi
 
 <script>
 (function(){
-// Звезда = 1,4 ₽ (фиксированно). $ и GRAM считаются от рубля по живым курсам:
-// USD/RUB берётся у ЦБ РФ, цена GRAM (бывший TON) у Coinbase. Если запрос не прошёл, остаётся запасной курс.
-var STAR_RUB=1.4;
-var usdRub=80.68,gramUsd=1.1511,live=false,stamp='';   // запасной курс на 30.10.2026
-var RATE={RUB:STAR_RUB};
-function calc(){RATE.USD=STAR_RUB/usdRub;RATE.GRAM=STAR_RUB/(usdRub*gramUsd)}
+// Цены синхронизированы с ботом: /api/quote отдаёт точную сумму за выбранное
+// количество звёзд по той же логике, что и при оплате. Пока ответ не пришёл,
+// работают резервный курс и живые курсы ЦБ/Coinbase для $ и GRAM.
+var API_QUOTE='https://bot.clodily.xyz:8443/api/quote';
+var FALLBACK_STAR_RUB=1.35;
+var usdRub=80.68,gramUsd=1.1511,live=false,stamp='';
+var RATE={RUB:FALLBACK_STAR_RUB};
+var botQuote=null,botStamp='',quoteSeq=0,quoteTimer=0;
+function calc(){if(!botQuote){RATE.RUB=FALLBACK_STAR_RUB;RATE.USD=FALLBACK_STAR_RUB/usdRub;RATE.GRAM=FALLBACK_STAR_RUB/(usdRub*gramUsd)}}
 calc();
-var FMT={RUB:{d:0,r:1,pre:'',suf:'\u00a0₽'},USD:{d:2,r:4,pre:'$',suf:''},GRAM:{d:2,r:4,pre:'',suf:'\u00a0GRAM'}};
+var FMT={RUB:{d:0,r:2,pre:'',suf:'\u00a0₽'},USD:{d:2,r:4,pre:'$',suf:''},GRAM:{d:2,r:4,pre:'',suf:'\u00a0GRAM'}};
 var $=function(s){return document.querySelector(s)};
 function fmt(n,d){var p=n.toFixed(d).split('.');var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f');return p[1]?i+','+p[1]:i}
 function cells(s){return Array.from(s).map(function(c){return /\d/.test(c)?'<span class="d">'+c+'</span>':'<span class="s">'+c+'</span>'}).join('')}
@@ -206,12 +209,39 @@ function snap(r){var s=stepOf(r);return Math.min(10000,Math.max(50,Math.round(r/
 function paint(v){
  curV=v;
  var c=fmt(v,0);if(c!==lastC){cEl.innerHTML=cells(c);lastC=c}
- var f=FMT[cur],p=f.pre+fmt(v*RATE[cur],f.d)+f.suf;if(p!==lastP){pEl.innerHTML=cells(p);lastP=p}
+ var total=null;
+ if(botQuote&&+botQuote.count===v){
+  var key=cur==='RUB'?'rub':cur==='USD'?'usd':'ton';
+  if(botQuote[key]!=null)total=+botQuote[key];
+ }
+ if(total==null)total=v*RATE[cur];
+ var f=FMT[cur],p=f.pre+fmt(total,f.d)+f.suf;if(p!==lastP){pEl.innerHTML=cells(p);lastP=p}
 }
 function paintRate(){
  var f=FMT[cur];rEl.textContent='1 звезда — '+f.pre+fmt(RATE[cur],f.r)+f.suf;
- $('#src').textContent=cur==='RUB'?'Фиксированный курс':(live?'Курс обновлён в '+stamp+' · ЦБ РФ и Coinbase':'Курс на 30.10.2026 · ЦБ РФ и Coinbase');
+ if(botQuote){$('#src').textContent='Курс бота'+(botStamp?' · обновлён в '+botStamp:'')}
+ else{$('#src').textContent=live?'Резервный курс · ЦБ РФ и Coinbase · '+stamp:'Резервный курс · ЦБ РФ и Coinbase'}
 }
+function applyQuote(q){
+ if(!q||!q.count||!q.rub)return;
+ botQuote=q;
+ var n=+q.count;
+ RATE.RUB=+q.rub/n;
+ RATE.USD=q.usd!=null?+q.usd/n:RATE.RUB/usdRub;
+ RATE.GRAM=q.ton!=null?+q.ton/n:RATE.RUB/(usdRub*gramUsd);
+ var d=q.updated_at?new Date(q.updated_at*1000):new Date();
+ botStamp=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+ try{localStorage.setItem('ws_quote',JSON.stringify(q))}catch(e){}
+ lastP='';paintRate();paint(curV);label();
+}
+function fetchQuote(n){
+ var seq=++quoteSeq,ctl=new AbortController(),t=setTimeout(function(){ctl.abort()},6000);
+ fetch(API_QUOTE+'?count='+n,{signal:ctl.signal,cache:'no-store'})
+  .then(function(r){clearTimeout(t);if(!r.ok)throw 0;return r.json()})
+  .then(function(q){if(seq===quoteSeq)applyQuote(q)})
+  .catch(function(){clearTimeout(t)});
+}
+function scheduleQuote(n){clearTimeout(quoteTimer);quoteTimer=setTimeout(function(){fetchQuote(n)},180)}
 function label(){cEl.setAttribute('aria-label',fmt(stars,0)+' звёзд');pEl.setAttribute('aria-label',lastP)}
 
 // пружина без перелёта: плавный разгон и мягкая остановка
@@ -240,6 +270,7 @@ function setStars(v){
  stars=v;
  walk.setAttribute('aria-valuenow',v);
  document.querySelectorAll('#presets .c').forEach(function(c){c.classList.toggle('on',+c.dataset.v===v)});
+ scheduleQuote(v);
 }
 function to(v){setStars(v);tTar=inv(v);hint.classList.add('off');kick()}
 function tFrom(e){var r=walk.getBoundingClientRect(),w=wb.offsetWidth;return Math.min(1,Math.max(0,(e.clientX-r.left-w/2)/(r.width-w)))}
@@ -262,6 +293,7 @@ document.querySelectorAll('#cur .c').forEach(function(c){c.addEventListener('cli
 })});
 
 setStars(50);paintRate();paint(50);label();
+try{var saved=JSON.parse(localStorage.getItem('ws_quote')||'null');if(saved&&(!saved.updated_at||Date.now()/1000-saved.updated_at<86400))applyQuote(saved)}catch(e){}
 
 // живой мониторинг курса: раз в минуту
 function getJSON(u){var c=new AbortController(),t=setTimeout(function(){c.abort()},7000);
