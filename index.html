@@ -80,8 +80,8 @@ h1{font-size:clamp(32px,4vw,56px);line-height:1.03;letter-spacing:-.035em;font-w
 .two>*{min-width:0}
 h2{font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.1}
 .st{font-size:clamp(26px,3.7vw,50px);line-height:1.16;font-weight:700;letter-spacing:-.035em;margin-bottom:.7em;max-width:900px}
-.st span{color:var(--pale);transition:color .4s var(--ease)}
-.st span.on{color:var(--ink)}
+.st span{color:inherit;transition:color .4s var(--ease)}
+.st span.on{color:var(--deep)}
 .side{padding-top:8px}.side p{color:var(--mut);margin-top:14px;max-width:290px}
 .side a{color:var(--deep)}
 details{margin:0}
@@ -119,8 +119,9 @@ footer{background:var(--blue);color:#fff;margin-top:clamp(88px,12vw,170px);paddi
 .pv{font-size:clamp(34px,6.4vw,56px)}
 }
 @media(max-width:600px){
-.wrap{padding:0 18px}
+.wrap{padding-left:18px;padding-right:18px}
 .top>*{animation:none!important}
+.rv{transform:none}
 .bar{height:72px}
 .logo{font-size:16px;gap:8px}.logo .mk{width:32px}
 .pill{padding:11px 14px;font-size:14px}
@@ -153,7 +154,7 @@ footer{padding:56px 0 32px}
 .cp{font-size:12.5px;margin-top:20px}
 }
 @media(max-width:380px){
-.wrap{padding:0 14px}
+.wrap{padding-left:14px;padding-right:14px}
 .bar{height:66px}
 .logo{font-size:15px;gap:7px}.logo .mk{width:28px}
 .pill{padding:10px 12px;font-size:13px}
