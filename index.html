@@ -132,6 +132,10 @@ h1{font-size:clamp(28px,7.4vw,40px)}
 .num{font-size:clamp(52px,17.5vw,96px);letter-spacing:-.06em}
 .u{font-size:18px;padding-bottom:.22em}
 .deal{gap:22px;padding:20px 0 24px}
+.deal{display:flex;flex-direction:column}
+.deal>div:nth-child(2){order:1}
+.deal>div:nth-child(1){order:2}
+.deal>div:nth-child(3){order:3}
 #presets{grid-template-columns:repeat(3,minmax(0,1fr))}
 .lb{font-size:14px;margin-bottom:9px}
 .c{font-size:14px;padding:10px 13px}
