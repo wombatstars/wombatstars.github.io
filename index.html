@@ -262,7 +262,7 @@ var $=function(s){return document.querySelector(s)};
 function fmt(n,d){var p=n.toFixed(d).split('.');var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f');return p[1]?i+','+p[1]:i}
 function cells(s){return Array.from(s).map(function(c){return /\d/.test(c)?'<span class="d">'+c+'</span>':'<span class="s">'+c+'</span>'}).join('')}
 
-var cEl=$('#count'),pEl=$('#price'),rEl=$('#rate'),pw=$('#pw'),walk=$('#walk'),wb=$('#wb'),fl=$('#fl'),hint=$('#hint');
+var cEl=$('#count'),pEl=$('#price'),rEl=$('#rate'),pw=$('#pw'),walk=$('#walk'),wb=$('#wb'),fl=$('#fl'),hint=$('#hint'),buyEl=$('#buy');
 var stars=50,cur='RUB',tNow=0,tTar=0,vel=0,last=0,phase=0,spS=0,face=1,drag=false,run=false,lastC='',lastP='',curV=50;
 
 function inv(v){return Math.sqrt((v-50)/9950)}
@@ -334,6 +334,7 @@ function setStars(v){
  stars=v;
  walk.setAttribute('aria-valuenow',v);
  document.querySelectorAll('#presets .c').forEach(function(c){c.classList.toggle('on',+c.dataset.v===v)});
+ if(buyEl)buyEl.href='https://t.me/wombatstarsbot?start=buy_'+v;
  scheduleQuote(v);
 }
 function to(v){setStars(v);tTar=inv(v);hint.classList.add('off');kick()}
